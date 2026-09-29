@@ -1,0 +1,413 @@
+               When Does Fourier Diagonalize the Physics?
+                  Calibrated Meters for Fixed versus Learned Representations
+                  in Operator Learning, and What the Learned Part Is Worth
+
+
+                     Juan Carlos del Rı́o Romero · independent research
+                                  ORCID: 0009-0009-2908-4168
+
+                                 August 2026 — working draft
+
+
+Abstract — A companion study showed that, for classification, a pooled dictionary of fixed
+transforms usually beats a transform learned from scratch, and that a gated coupling of the
+two self-calibrates: the gate closes where the dictionary suffices and opens where it does
+not [10]. This paper re-instantiates that architecture for physical modelling, where the objective
+inverts — predict the state rather than compress toward a label — and asks a question that
+classification cannot answer well: what does the learned part actually say? We report six
+results, all on controlled one-dimensional partial differential equations (PDEs). (i) The failure
+of a fixed spectral basis to diagonalize the propagator is a clean, monotone heterogeneity
+meter: for diffusion with a spatially varying coefficient a(x), Fourier’s off-diagonal fraction rises
+0 → 0.273 with the heterogeneity knob while the true eigenbasis stays exactly diagonal. (ii) That
+eigenbasis can be discovered without an oracle by minimising off-diagonality over a structured
+Sturm–Liouville family — reaching 0.000000 at every heterogeneity and returning the physical
+coefficient at correlation 1.0000 — and the same objective detects its own mis-specification.
+(iii) The residual of a data-driven linear (dynamic mode decomposition, DMD) propagator is
+a nonlinearity meter, and a gated learned branch fires with the same rectified, thresholded
+law as the classification gate: shut until the nonlinearity knob ε ≈ 0.4, then rising linearly. (iv)
+Making that branch deeper is not the lever; making it structurally correct is — held-out capture
+of what DMD misses goes 11.4% → 71.6% when the branch’s features match the true quadratic
+term, while stacked residual integrators reach only 15.6%. (v) Sparse regression then names that
+term exactly, recovering the diffusion coefficient to three decimals and the nonlinear coefficient
+on the identity line. (vi) Putting the named term into the model buys extrapolation: over a
+30-step rollout never seen in training it is ∼ 4× more accurate than a black-box branch, and
+∼ 3× on unseen amplitudes; rollout training then improves the structured model a further 3.4×
+while making the black box worse. We are explicit about what is established elsewhere (operator
+learning, Koopman/DMD, sparse identification, inverse coefficient problems) and about our own
+negative results, discarded metrics and confound controls.
+
+
+1    Introduction
+
+Two families of front-end compete whenever a signal must be represented compactly. A fixed
+transform — Fourier, wavelet, scattering — is cheap, interpretable and needs no data. A learned
+transform is adaptable but under-determined and opaque. A companion study [10] compared
+them for classification and found that a gated coupling behaves best, with the gate acting as a
+diagnostic: it collapses to the dictionary when the dictionary suffices, and engages the learned
+branch only where the discriminative structure is genuinely non-classical.
+That study left a dissatisfaction. Under a classification objective, reading the learned transform
+is ill-posed: many bases separate the same labels, so the learned basis drifts and its entries carry
+
+                                                 1
+                    classification (companion)                      physical modelling (this paper)
+objective           compress toward the label                       predict/reconstruct the state
+fixed branch        Fourier/wavelet as features                     spectral method: Fourier diagonalizes homogeneous o
+learned branch      discriminative basis (under-determined)         eigenbasis of the dynamics (determined by the physic
+head                classifier                                      propagator u(t) → u(t+∆)
+gate                is the discriminative basis outside the bank?   is the physics diagonalized by a classical transform?
+reading the basis   ill-posed (drifts)                              recovering the operator — well-posed
+
+Table 1: The inversion. Every row changes meaning when the objective changes from label compression to
+state prediction.
+
+
+no meaning beyond the task. The natural fix is to change the objective. In physical modelling
+the target is the state itself, and the learned object stops being an arbitrary discriminative
+rotation: it becomes the basis that diagonalizes the dynamics. Table 1 states the inversion.
+
+
+What we claim, and what we do not. Several ingredients here are established and we
+use them as tools, not contributions: neural operator learning and its spectral variants [1];
+Koopman operator theory and dynamic mode decomposition [2, 3]; sparse identification of
+governing equations [4, 5]; the recovery of a coefficient from spectral data, which is a mature
+inverse problem [6]; and the general finding in scientific machine learning that inductive bias
+beats raw capacity. Relatedly, it has recently been proved that an invariant network’s weights
+recover the Fourier transform of the underlying group, and that the group can be read off those
+weights [7]; we do not re-derive that. Our contribution is narrower and, we believe, useful: a set
+of calibrated meters — quantities you compute on your own operator or data that answer
+how much of a fixed representation is failing, of what kind, and whether the learned part is worth
+reading — plus the controls that make those meters trustworthy.
+
+
+Roadmap. Section 2 fixes notation and the diagonality metric. Sections 3 and 4 build and
+then close the heterogeneity meter. Sections 5 and 6 build the nonlinearity meter and settle
+depth-versus-structure. Section 7 reads the operator, Sections 8 and 9 measure what that reading
+is worth. Section 11 collects the negative results.
+
+
+2    Setup
+
+Operators. We use two controlled families on a periodic grid of N points. The linear family is
+diffusion with a spatially varying coefficient, ut = ∂x (a(x) ∂x u), discretized as L = −G⊤ diag(af ) G
+with G the forward-difference operator and af the coefficient on cell faces; the one-step propagator
+is P = exp(L ∆t). A knob β sets the heterogeneity, a = 1 + βf (x) with f a fixed smooth
+normalized field; β = 0 gives constant coefficients, for which Fourier is exactly the eigenbasis.
+The nonlinear family is ut = ν uxx − ε u ux , integrated with fourth-order Runge–Kutta and 2/3
+dealiasing: ε = 0 is the linear heat equation, ε > 0 is Burgers.
+
+
+The diagonality metric. For a basis B (rows orthonormal) and a propagator P , define
+
+                                             BP B⊤ − diag(BP B⊤ )       F
+                             D(B, P ) =                                     ,                         (1)
+                                                       BP B⊤ F
+
+the off-diagonal Frobenius fraction. D = 0 means a diagonal (per-mode) propagator in B
+reproduces the dynamics exactly — a spectral method is exact and there is nothing to learn.
+
+
+                                                   2
+Figure 1: Heterogeneity meter. Left: off-diagonal fraction of the propagator in the fixed Fourier basis
+(blue) and in the true eigenbasis (green) as the medium becomes heterogeneous. Right: the same Fourier
+curve as a meter, against the alignment between the true eigenbasis and Fourier.
+
+
+This is a property of the operator, not of sampled states, which matters: an earlier version of this
+experiment used a prediction error instead and produced an artefact, because initial conditions
+that are smooth in Fourier let Fourier compress the data regardless of the dynamics (Section 11).
+
+
+3     A heterogeneity meter
+
+We sweep β and evaluate Equation (1) for the fixed real Fourier basis and for the true eigenbasis
+Φ of L (an oracle, removed in Section 4).
+At β = 0, Fourier diagonalizes P exactly (D = 0.000). As heterogeneity grows, DFourier rises
+monotonically to 0.273 at β = 4, while DΦ ≡ 0 at every β; the alignment between Φ and Fourier
+falls from 1.00 to 0.44 (Figure 1). The fixed basis is therefore optimal exactly where the medium
+is homogeneous, and degrades in proportion to how far the physics has moved away from it. The
+failure of the fixed basis is the measurement.
+
+
+4     Discovering the basis without an oracle
+
+The oracle is the weak point of Section 3. Learning a free unitary is the classification failure mode
+— under-determined and drifting — so instead we search a structured family: Sturm–Liouville
+operators L(θ) = −G⊤ diag(aθ )G with aθ a truncated Fourier parametrization of the coefficient
+(6 or 10 parameters). The objective is only Equation (1) on the true propagator: no labels, no
+trajectories, no oracle, started from Fourier (θ = 0).
+The family is well motivated rather than arbitrary: the classical orthogonal bases (Fourier,
+Hermite, Legendre, Chebyshev) are the eigenbases of Sturm–Liouville operators, so searching
+over such bases is searching over second-order differential operators. Note also a degeneracy
+that makes the operator, not the basis, the right thing to parametrize: at a fixed rank K, all
+polynomial families of degree < K span the same subspace.
+
+
+Result. Off-diagonality falls from 0.041–0.273 (Fourier) to 0.000000 at every β, and the
+recovered coefficient matches the truth at correlation 1.0000 (Figure 2). Eigenvectors are
+invariant under a → c a for c > 0, so a is identifiable only up to a positive scale and recovery is
+
+
+                                                   3
+Figure 2: Discovering the basis. Left: the discovered Sturm–Liouville basis diagonalizes as well as the
+oracle, with no oracle; the pale curve is the same search with a family too narrow to contain the truth.
+Centre: the recovered coefficient over the true one. Right: recovery against heterogeneity for well-specified,
+mis-specified and re-specified families.
+
+
+scored after standardizing both profiles. The discovered basis is not merely a basis that works —
+it is the physics, readable as a coefficient field.
+
+
+The meter detects its own mis-specification. When the true a(x) contains harmonics
+outside the search family, recovery degrades sharply: off-diagonality only falls 0.263 → 0.178
+and the recovered profile correlates 0.13–0.41 with the truth. Widening the family to contain
+the truth restores 0.000000 and 1.0000. So the failure mode is mis-specification, not the method
+— and the objective value itself announces it, by plateauing well above zero. This is the precise
+counterweight to Section 6: structure is the lever, but wrong structure is worse than useless.
+
+
+5     A nonlinearity meter, and a gate that fires
+
+We now move to ut = νuxx − εuux and learn a one-step map over a horizon long enough for the
+nonlinearity to act. The linear reference is the closed-form best linear propagator A (DMD): it
+can only represent a superposition of exponential modes, so its held-out residual is exactly what
+a Laplace/Koopman-linear front-end cannot capture. On top we place a gated learned branch,
+û1 = Au0 + g · NL(u0 ), with A frozen and only the branch trained on the residual under an L1
+penalty on g.
+Two things track ε monotonically (Figure 3). The DMD residual rises 0 → 0.153: a clean
+nonlinearity meter. And the branch fires with a rectified, thresholded law — amplitude ≈ 0 up to
+ε ≈ 0.4, then rising roughly linearly to 0.127. That is the same shape as the classification gate
+law of the companion study, where the gate followed a controlled information gap with Pearson
+r = 0.96 and a rectified fit. The branch does not fire until the physics is nonlinear enough to
+need it, and then fires in proportion. When it fires it genuinely captures out-of-sample, removing
+a steady 11.6–13.4% of the DMD residual.
+
+
+6     Depth is not the lever; structure is
+
+The branch above captures only ∼ 13% of what DMD misses. Since u ux is a low-order polynomial
+nonlinearity that a two-layer network can express, the ceiling is one of generalization, not capacity
+— confirmed by the fact that removing regularization makes the branch fire more while going
+negative on held-out data. We therefore compare four branch designs on the identical frozen-DMD
+residual (Table 2, Figure 4).
+
+                                                      4
+Figure 3: Nonlinearity meter and gate. Left: DMD (linear) residual against the nonlinearity knob, and
+the residual after the gated learned branch. Right: how much the branch fires — shut below threshold,
+then opening in proportion.
+
+           nonlinear branch                                  mean held-out capture (ε ≥ 0.7)
+           one-step multi-layer perceptron (no depth)                                 11.4%
+           residual integrator, 4 stages (neural-ODE-like)                            15.6%
+           residual integrator, 8 stages∗                                              6.1%
+           structure-matched quadratic u ⊙ ∂x u                                       71.6%
+
+Table 2: Depth versus structure. ∗ under-trained at a fixed budget. Adding depth as a learned integrator
+helps modestly and non-monotonically; matching the form of the nonlinearity multiplies capture by six.
+
+
+The winning branch is not just better — it is the feature that sparse regression selects (Section 7).
+Capturing the nonlinearity a linear front-end misses and writing down the governing term are
+therefore the same operation, which is what makes the rest of this paper possible.
+
+
+7    Reading the operator
+
+We estimate ut numerically (a small forward difference, not the analytic right-hand side), build
+a library of candidate spatial-differential terms [ u, ux , uxx , uxxx , u2 , uux , uuxx , (ux )2 ] via
+spectral derivatives, and run sequential thresholded least squares.
+The recovery is exact in the accessible regime (Figure 5): the diffusion coefficient is pinned
+at 0.050 = ν, the coefficient of uux lies on the identity line −ε (measured −0.200, −0.400,
+−0.699, −0.991 for ε = 0.2, 0.4, 0.7, 1.0), and every non-physical library term is driven to zero
+by the sparsity. Honest limit: for ε ≥ 1.5 the nonlinear coefficient is under-estimated (−1.688
+against −2.0) and ν drifts to 0.042. This is a resolution effect — strong Burgers shocks are
+under-resolved at N = 64 and the numerical ut degrades where gradients steepen — not a failure
+of identification.
+
+
+8    What the reading is worth: extrapolation
+
+Recovering an equation is only valuable if it buys something a black box cannot give. We test
+the sharpest version: three one-step models sharing the same frozen linear DMD head, differing
+only in the nonlinear branch — (a) none, (b) a black-box network, (c) the discovered uux term
+
+
+                                                   5
+ Figure 4: Held-out capture of the DMD residual for four branch designs across the nonlinearity sweep.
+
+
+— all trained only on one-step pairs at ε = 1.0, then evaluated by a 30-step rollout (a horizon
+never seen) from in-distribution and from higher-amplitude out-of-distribution initial conditions.
+
+      model                        rollout error, in-distribution   rollout error, unseen amplitude
+      DMD linear only                                      0.563                              0.748
+      DMD + black-box branch                               0.558                              0.739
+      DMD + discovered uux                                0.150                              0.303
+
+Table 3: Relative L2 error at rollout step 30. The discovered term is ∼ 4× better in horizon and ∼ 2.5×
+on unseen amplitude.
+
+The most telling line is the middle one: the black-box branch sits essentially on top of the
+linear-only curve at every step (Figure 6). Its ∼ 11% one-step capture does not compound into
+any rollout advantage — it did not learn a generalizable operator, only a one-step correction
+on the training distribution. It does not explode; it simply fails to help. The structured term
+transfers because uux is amplitude-covariant: the physically correct term carries to a regime it
+never saw.
+
+
+9    Hardening: rollout training multiplies structure
+
+Finally we ask whether training on rollout (rather than one-step) changes the picture, and
+whether the models respect the physics — viscous Burgers must dissipate energy, never create it.
+Rollout training is applied as fine-tuning on top of the converged one-step model, unrolling 5
+steps with gradient clipping; three seeds, mean ± standard deviation.
+Rollout training is therefore not a substitute for structure; it is a multiplier on structure (Figure 7).
+It also collapses the seed variance of the structured model (out-of-distribution standard deviation
+0.075 → 0.007): the right operator trained on the right objective becomes seed-insensitive. The
+one-step structured model reproduces Section 8 within seed variation (0.138 ± 0.012 here against
+0.150 there), which is precisely why this table carries error bars. The physical check passes for
+all models — spurious energy growth is 0.0% of steps everywhere except the black box under
+
+                                                   6
+Figure 5: Reading the operator. Left: recovered coefficient of uux against ground truth −ε. Right: the
+linear (diffusion) coefficient stays pinned at ν.
+
+
+
+
+Figure 6: Extrapolation. Rollout error against step, in-distribution (left) and at unseen amplitude (right).
+
+
+rollout training out-of-distribution (1.6%) — so it confirms stability but does not discriminate,
+and we report it as a check that passed rather than as evidence.
+
+
+10     Related work
+
+Learning solution operators for PDEs is an active field; Fourier neural operators [1] are, in the
+language of this paper, the fixed-spectral branch promoted to an operator. Koopman theory and
+DMD [2, 3] are the learned-linear branch, and the reduced-order-modelling literature has long
+used them for prediction. Sparse identification of nonlinear dynamics [4] and PDE-FIND [5]
+provide the reading step of Section 7; we use them unmodified. Recovering a coefficient field
+from spectral or boundary data is the classical inverse-conductivity problem [6], a mature area;
+our Section 4 is a small, well-specified parametric instance of it and claims no advance there. On
+the learned-representation side, it has been proved that invariant networks recover the Fourier
+transform of the underlying group and that the group is readable from the weights [7]; that
+result is stronger than anything we show about why classical bases appear, and we position our
+contribution as complementary and empirical. What we believe is not covered by the above
+is the packaging: a small set of calibrated meters with a shared shape — fixed structure plus
+measured failure — validated across two different objectives (a label-compression gate with
+
+                                                     7
+              model                                    in-distribution   unseen amplitude
+              black-box branch, one-step trained        0.558 ± 0.000        0.739 ± 0.000
+              black-box branch, + rollout training      0.587 ± 0.036        0.814 ± 0.128
+              discovered uux , one-step trained         0.138 ± 0.012        0.249 ± 0.075
+              discovered uux , + rollout training      0.042 ± 0.003        0.074 ± 0.007
+
+Table 4: Rollout error at step 30, three seeds. Rollout training improves the structurally correct model
+∼ 3.4× and makes the black box worse.
+
+
+
+
+Figure 7: Hardening, three seeds (shaded: ±1 s.d.). Rollout training pays off only for the model with the
+right structure.
+
+
+r = 0.96, and the physical meters here), together with the controls that keep them honest.
+
+
+11     Limitations and negative results
+
+We state these explicitly, in the order they cost us time.
+An artefact we had to remove. The heterogeneity meter was first built from a prediction
+error with Fourier-smooth initial conditions. It produced a negative gap — Fourier apparently
+better than the eigenbasis — because those initial conditions let Fourier compress the data
+irrespective of the dynamics, and a full linear head made the basis irrelevant. Moving to the
+operator-level metric of Equation (1) removed the confound.
+An unfair comparison we had to fix. The first gated experiment trained a coupled network
+by stochastic gradient descent against a closed-form least-squares DMD and unsurprisingly lost,
+with a gate that did not behave as a meter. Freezing the DMD operator and training only the
+gated branch on its residual is what turned the gate into an instrument.
+A training recipe that diverges. Rollout training from a cold network diverges (we observed
+exactly 1.000 relative error, i.e. a collapsed prediction). It must be applied as fine-tuning on a
+converged one-step model, with gradient clipping.
+Seed sensitivity. Out-of-distribution rollout numbers vary substantially across seeds (±0.075
+at one-step); single-seed out-of-distribution claims should not be trusted, which is why Section 9
+reports error bars and Section 8 should be read through them.
+Scope. All experiments are one-dimensional, at N = 64, with a single nonlinear term whose
+form we ourselves planted. Recovery correlations of 1.0000 indicate a well-specified problem,
+not a difficult one: they validate the instrument, they do not demonstrate discovery on data
+
+
+                                                   8
+whose answer is unknown. Strong shocks are under-resolved. The linear head is a fitted DMD
+operator, not the exact diffusion operator, which caps how far even the structured model
+transfers in amplitude. Structure preservation is verified a posteriori (energy monitoring) rather
+than imposed by construction; a symplectic or conservative parametrization is the natural next
+hardening step.
+
+
+12     Conclusion
+
+Inverting the objective from classification to physical modelling makes the learned branch legible.
+In that regime the failure of a fixed spectral basis is a heterogeneity meter; the residual of a
+linear propagator is a nonlinearity meter; a gated learned branch fires with the same rectified
+law as the classification gate; the term that branch must contain is the term sparse regression
+names; and putting that named term into the model is what buys extrapolation — in horizon, in
+amplitude, and under rollout training, where structure is multiplied rather than replaced. The
+practical reading for a modeller is short: measure first whether your fixed front-end is failing
+and in which way, prefer a structured learned family over a free one, and treat the objective
+value itself as a mis-specification alarm.
+
+
+13     Reproducibility
+
+NumPy/SciPy/PyTorch with fixed seeds. Every experiment is a short deterministic script
+in experiments/ that regenerates the figure of the same name — one per section, namely
+phys wp1 pilot, phys wp1 close, phys wp2 dmd, depth test, phys wp3 sindy, phys wp4 rollout
+and phys wp4b hardening — each accompanied by a RESULTS note stating its findings and its
+limits. Sparse regression is implemented directly (sequential thresholded least squares) with no
+external dependency. Trajectory generation for the Burgers sweep is cached in a regenerable
+archive; the scripts recompute it deterministically when the cache is absent.
+
+
+References
+[1] Li, Z., Kovachki, N., Azizzadenesheli, K., et al.: Fourier Neural Operator for Parametric Partial
+    Differential Equations. ICLR, 2021.
+
+[2] Mezić, I.: Spectral Properties of Dynamical Systems, Model Reduction and Decompositions. Nonlinear
+    Dynamics 41, 2005.
+
+[3] Schmid, P.J.: Dynamic Mode Decomposition of Numerical and Experimental Data. Journal of Fluid
+    Mechanics 656, 2010.
+
+[4] Brunton, S.L., Proctor, J.L., Kutz, J.N.: Discovering Governing Equations from Data by Sparse
+    Identification of Nonlinear Dynamical Systems. PNAS 113(15), 2016.
+
+[5] Rudy, S.H., Brunton, S.L., Proctor, J.L., Kutz, J.N.: Data-Driven Discovery of Partial Differential
+    Equations. Science Advances 3(4), 2017.
+
+[6] Uhlmann, G.: Electrical Impedance Tomography and Calderón’s Problem. Inverse Problems 25(12),
+    2009.
+
+[7] Marchetti, G.L., Hillar, C., Kragic, D., Sanborn, S.: Harmonics of Learning: Universal Fourier
+    Features Emerge in Invariant Networks. Proceedings of Machine Learning Research 247, 2024.
+
+[8] Tishby, N., Pereira, F.C., Bialek, W.: The Information Bottleneck Method. Allerton, 1999.
+
+
+
+                                                  9
+[9] Mallat, S.: A Wavelet Tour of Signal Processing. Academic Press, 2009.
+
+[10] del Rı́o Romero, J.C.: Fixed, Learned, or Both? A Machine-Learning Study of Self-Calibrating Gated
+    Couplings of Transform Dictionaries and Learned Unitary Bases for Compact Signal Classification.
+    Technical report, 2026.
+
+
+
+
+                                                  10
+

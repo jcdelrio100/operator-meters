@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software or paper, please cite it as below."
+title: "When Does Fourier Diagonalize the Physics? Calibrated Meters for Fixed versus Learned Representations in Classification and in Operator Learning, and What the Learned Part Is Worth"
+type: software
+version: 0.9.0
+date-released: "2026-09-29"
+license: MIT
+authors:
+  - family-names: "del Río Romero"
+    given-names: "Juan Carlos"
+    orcid: "https://orcid.org/0009-0009-2908-4168"
+keywords:
+  - operator learning
+  - learned transforms
+  - dynamic mode decomposition
+  - Sturm-Liouville
+  - sparse identification (SINDy)
+  - information bottleneck
+  - gated coupling
+repository-code: "https://github.com/USERNAME/operator-meters"
+preferred-citation:
+  type: article
+  title: "When Does Fourier Diagonalize the Physics? Calibrated Meters for Fixed versus Learned Representations in Classification and in Operator Learning, and What the Learned Part Is Worth"
+  year: 2026
+  authors:
+    - family-names: "del Río Romero"
+      given-names: "Juan Carlos"
+      orcid: "https://orcid.org/0009-0009-2908-4168"
+  notes: "Working draft; DOI to be assigned by Zenodo on release."

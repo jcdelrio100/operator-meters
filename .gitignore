@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.npz
+*.npy
+cache/
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls

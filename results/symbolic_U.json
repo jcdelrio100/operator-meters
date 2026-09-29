@@ -1,0 +1,26 @@
+{
+ "dft": {
+  "label": "DFT, untrained",
+  "fit": 0.9999999999999749,
+  "a": 0.04908738527279784,
+  "a_over_2pi_N": 1.0000000012316264,
+  "novelty_median": -1.532107773982716e-14,
+  "frac_pure": 1.0
+ },
+ "sparse": {
+  "label": "compression prior + CE",
+  "fit": 0.08818482158286496,
+  "a": 0.04924376697080488,
+  "a_over_2pi_N": 1.003185783023233,
+  "novelty_median": 0.6875957070742286,
+  "frac_pure": 0.0
+ },
+ "ce": {
+  "label": "CE alone, random start",
+  "fit": 0.03022230568307263,
+  "a": 0.049575106325479436,
+  "a_over_2pi_N": 1.0099357729288116,
+  "novelty_median": 0.7803606206093212,
+  "frac_pure": 0.0
+ }
+}

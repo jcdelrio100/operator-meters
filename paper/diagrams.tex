@@ -1,0 +1,81 @@
+% Block diagrams (TikZ). Included by operator_meters.tex.
+% Styles are defined in the preamble: blk, fixed, learn, stage, io, op, dot, meter, mtag, zoombox, ar, tap.
+
+% ---------------------------------------------------------------- global pipeline
+\newcommand{\GlobalDiagram}{%
+\begin{tikzpicture}[font=\small]
+  % stage 1
+  \node[fixed, text width=20mm] (fx) at (0,0) {fixed\\dictionary};
+  \node[learn, text width=20mm, below=5mm of fx] (lr) {learned\\basis};
+  \node[stage, fit=(fx) (lr), inner sep=4mm, label={[font=\small\bfseries]above:1 · representation}] (rep) {};
+  % stage 2
+  \node[op, text width=16mm] (K) at ($(rep.east)+(18mm,0)$) {keep $K$\\coords};
+  \node[stage, fit=(K), inner xsep=4mm, inner ysep=4mm, label={[font=\small\bfseries]above:2 · selection}] (sel) {};
+  % stage 3
+  \node[op, text width=18mm] (lin) at ($(sel.east)+(20mm,0)+(0,7mm)$) {linear map};
+  \node[learn, text width=18mm, below=5mm of lin] (nl) {gated\\nonlinear};
+  \node[op, circle, inner sep=1pt, text width=4mm] (sum) at ($(lin.east)+(9mm,0)$) {$+$};
+  \node[stage, fit=(lin) (nl) (sum), inner sep=4mm, label={[font=\small\bfseries]above:3 · predictor / head}] (hd) {};
+  % io
+  \node[io, text width=17mm] (in) at ($(rep.west)+(-14mm,0)$) {signal $x$\\or state $u_0$};
+  \node[io, text width=17mm] (out) at ($(hd.east)+(14mm,0)$) {label $y$\\or state $u_1$};
+  % wiring
+  \node[dot] (j1) at ($(in.east)+(5mm,0)$) {};
+  \draw[ar] (in) -- (j1) |- (fx.west); \draw[ar] (j1) |- (lr.west);
+  \node[dot] (m1) at ($(rep.east)+(5mm,0)$) {};
+  \draw[-] (fx.east) -| (m1); \draw[-] (lr.east) -| (m1); \draw[ar] (m1) -- (K.west);
+  \node[dot] (j2) at ($(sel.east)+(6mm,0)$) {};
+  \draw[ar] (K.east) -- (j2) |- (lin.west); \draw[ar] (j2) |- (nl.west);
+  \draw[ar] (lin.east) -- (sum.west); \draw[ar] (nl.east) -| (sum.south);
+  \draw[ar] (sum.east) -- (out.west);
+  % meters
+  \node[meter, text width=46mm, below=4mm of rep] (me1) {gate $g_{s2}$ (classification) · off-diagonality $\mathcal D$ (physics)};
+  \node[meter, text width=46mm, below=4mm of hd] (me2) {gate $g$ · branch firing $\|g\,\mathrm{NL}(u)\|/\|Au\|$};
+  \draw[tap] (lr.south) -- (me1.north -| lr.south);
+  \draw[tap] (nl.south) -- (me2.north -| nl.south);
+  % zoom boxes
+  \node[zoombox, fit=(rep) (me1), inner sep=2mm, label={[mtag]below:zoom: Fig.~\ref{fig:zoom-basis}}] {};
+  \node[zoombox, fit=(hd) (me2), inner sep=2mm, label={[mtag]below:zoom: Fig.~\ref{fig:zoom-predictor}}] {};
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------- zoom: representation stage
+\newcommand{\BasisZoom}{%
+\begin{tikzpicture}[font=\small]
+  \node[fixed, text width=44mm, minimum height=14mm] (fx) at (0,0) {\textbf{fixed transform}\\Fourier · wavelets · pooled dictionary};
+  \node[learn, text width=44mm, minimum height=14mm] (lr) at (0,-24mm) {\textbf{learned basis}\\classification: $U=\exp(C-C^{\mathsf H})$\\physics: Sturm–Liouville $L(\theta)$};
+  \node[io, text width=14mm] (in) at (-40mm,-12mm) {$x$ / $u_0$};
+  \node[dot] (j) at (-30mm,-12mm) {};
+  \draw[ar] (in) -- (j); \draw[ar] (j) |- (fx.west); \draw[ar] (j) |- (lr.west);
+  \node[op, text width=12mm] (g) at (36mm,-24mm) {$\times\, g_{s2}$};
+  \draw[ar] (lr) -- (g);
+  \node[op, text width=30mm, minimum height=14mm] (cat) at (62mm,-12mm) {concatenate\\$[\,x_{\text{dict}}\,;\,g_{s2}\,x_{\text{learn}}\,]$};
+  \draw[ar] (fx.east) -| ($(cat.west)+(-5mm,0)$) -- (cat.west);
+  \draw[ar] (g.east) -| (cat.south);
+  \node[io, text width=16mm] (out) at (90mm,-12mm) {to selection};
+  \draw[ar] (cat) -- (out);
+  \node[meter, text width=46mm] (m) at (62mm,-40mm) {\textbf{meter}\\classification: the gate $g_{s2}$ itself\\physics: off-diagonality $\mathcal D(B,P)$, Eq.~\eqref{eq:D}};
+  \draw[tap] (g.south) |- (m.west);
+  \node[mtag, above=1mm of fx] {always on: cheap, interpretable, no data};
+  \node[mtag, below=1mm of lr] {on only if it earns its keep ($L_1$ on $g_{s2}$)};
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------- zoom: predictor / head
+\newcommand{\PredictorZoom}{%
+\begin{tikzpicture}[font=\small]
+  \node[op, text width=44mm, minimum height=14mm] (lin) at (0,0) {\textbf{linear map}\\classification: $Wz$\\physics: DMD propagator $A u_0$ (frozen)};
+  \node[learn, text width=44mm, minimum height=14mm] (nl) at (0,-24mm) {\textbf{nonlinear branch} $\mathrm{NL}(\cdot)$\\black box · residual integrator\\structure-matched $[u, u_x, u\,u_x]$, sub-stepped};
+  \node[io, text width=16mm] (in) at (-42mm,-12mm) {$z$ ($K$ coords)\\or $u_0$};
+  \node[dot] (j) at (-30mm,-12mm) {};
+  \draw[ar] (in) -- (j); \draw[ar] (j) |- (lin.west); \draw[ar] (j) |- (nl.west);
+  \node[op, text width=10mm] (g) at (36mm,-24mm) {$\times\, g$};
+  \draw[ar] (nl) -- (g);
+  \node[op, circle, inner sep=1pt, text width=4mm] (sum) at (56mm,0) {$+$};
+  \draw[ar] (lin.east) -- (sum.west);
+  \draw[ar] (g.east) -| (sum.south);
+  \node[io, text width=16mm] (out) at (76mm,0) {$\hat y$ or $\hat u_1$};
+  \draw[ar] (sum) -- (out);
+  \node[meter, text width=46mm] (m) at (62mm,-38mm) {\textbf{meter}: firing $\|g\,\mathrm{NL}(u)\|/\|Au\|$\\shut below the nonlinearity threshold, then proportional};
+  \draw[tap] (g.south) |- (m.west);
+  \node[mtag, above=1mm of lin] {closed form, never trained in physics};
+  \node[mtag, below=1mm of nl] {trained on the residual of the linear map only};
+\end{tikzpicture}}

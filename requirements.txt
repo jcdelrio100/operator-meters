@@ -1,0 +1,9 @@
+# operator-meters — Python dependencies (tested with Python 3.11, CPU only)
+numpy>=1.24          # (2.4.4)
+scipy>=1.17          # (1.17.1)  — expm/eigh/logm, Powell, curve_fit
+torch>=2.1           # (2.14.0)  — CPU build is sufficient
+scikit-learn>=1.3    # (1.8.0)   — used by the vendored companion code (digits)
+matplotlib>=3.7      # (3.10.9)
+PyWavelets>=1.4      # (1.8.0)   — dictionary members of the vendored companion code
+pyts>=0.13           # (0.13.0)  — bundled UCR datasets (vendored companion code)
+pooch>=1.7           # (1.9.0)   — scipy.datasets (vendored companion code)
