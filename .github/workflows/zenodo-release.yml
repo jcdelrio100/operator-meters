@@ -1,0 +1,62 @@
+# .github/workflows/zenodo-release.yml
+# Sustituye a la integración GitHub–Zenodo (desactívala en
+# https://zenodo.org/account/settings/github/ para no duplicar versiones).
+# En cada release: zip del tag + PDF como fichero propio y vista previa por defecto.
+# Requiere el secreto ZENODO_TOKEN (scopes deposit:write, deposit:actions) y
+# scripts/zenodo_pdf_version.py en el repo.
+name: zenodo-release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag existente a archivar (p. ej. v1.0.2)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      RECORD_ID: "TODO"           # cualquier versión; se resuelve a la última
+      BASENAME: operator-meters
+      PDF_PATH: paper/operator-meters.pdf
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+          fetch-depth: 0
+
+      # Opcional: recompilar el PDF desde el .tex para que coincida con el tag.
+      # - uses: xu-cheng/latex-action@v3
+      #   with:
+      #     root_file: superstructures.tex
+      #     working_directory: paper
+
+      - name: Build source zip
+        run: |
+          git archive --format=zip --prefix="${BASENAME}-${TAG}/" \
+            -o "${BASENAME}-${TAG}.zip" "${TAG}"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Publish new Zenodo version
+        env:
+          ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
+        run: |
+          pip install --quiet requests
+          python scripts/zenodo_pdf_version.py \
+            --record "${RECORD_ID}" \
+            --files "${BASENAME}-${TAG}.zip" \
+            --pdf "${PDF_PATH}" \
+            --pdf-name "${BASENAME}-${TAG}.pdf" \
+            --version "${TAG#v}" \
+            --add-license cc-by-4.0 \
+            --github-tree-url "https://github.com/${GITHUB_REPOSITORY}/tree/${TAG}"
