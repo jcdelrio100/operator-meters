@@ -85,14 +85,15 @@ def run():
 
 
 def plot(out):
-    fig, ax = plt.subplots(1, 3, figsize=(12, 3.8))
+    fig, ax = plt.subplots(1, 3, figsize=(12.5, 3.9))
     for i, kind in enumerate(["dft", "sparse", "ce"]):
         o = out[kind]
-        ax[i].imshow(np.array(o["U_real"]), cmap="RdBu", vmin=-0.12, vmax=0.12, aspect="auto")
+        im = ax[i].imshow(np.array(o["U_real"]), cmap="RdBu", vmin=-0.12, vmax=0.12, aspect="auto")
         ax[i].set_title(f"{o['label']}\nfit to $e^{{-iajk}}/\\sqrt{{N}}$: {o['fit']:.2f},  "
                         f"$a/(2\\pi/N)$ = {o['a_over_2pi_N']:.2f}", fontsize=9)
-        ax[i].set_xlabel("k"); ax[i].set_ylabel("row j (canonicalised)")
-    fig.tight_layout(); fig.savefig(os.path.join(FIG, "symbolic_U.png"), dpi=150); plt.close(fig)
+        ax[i].set_xlabel("column k (input sample)"); ax[i].set_ylabel("row j (basis vector, canonicalised)")
+    cb = fig.colorbar(im, ax=ax, fraction=0.02, pad=0.02); cb.set_label(r"$\mathrm{Re}\,U_{jk}$  (red > 0, blue < 0)")
+    fig.savefig(os.path.join(FIG, "symbolic_U.png"), dpi=150, bbox_inches="tight"); plt.close(fig)
 
 
 if __name__ == "__main__":

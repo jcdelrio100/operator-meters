@@ -17,7 +17,7 @@ keywords:
   - sparse identification (SINDy)
   - information bottleneck
   - gated coupling
-repository-code: "https://github.com/USERNAME/operator-meters"
+repository-code: "https://github.com/jcdelrio100/operator-meters"
 preferred-citation:
   type: article
   title: "When Does Fourier Diagonalize the Physics? Calibrated Meters for Fixed versus Learned Representations in Classification and in Operator Learning, and What the Learned Part Is Worth"
