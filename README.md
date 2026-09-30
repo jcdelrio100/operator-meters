@@ -35,3 +35,7 @@ cd paper && pdflatex operator_meters && pdflatex operator_meters
 
 ## Licence
 MIT.
+
+## Cite
+Archived at Zenodo: https://doi.org/10.5281/zenodo.23071565 (concept DOI, resolves to the latest version).
+See `CITATION.cff` for a citable entry.

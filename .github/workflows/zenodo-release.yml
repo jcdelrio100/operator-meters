@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TAG: ${{ github.event.release.tag_name || inputs.tag }}
-      RECORD_ID: "TODO"           # cualquier versión; se resuelve a la última
+      RECORD_ID: "23071565"           # cualquier versión; se resuelve a la última
       BASENAME: operator-meters
       PDF_PATH: paper/operator-meters.pdf
     steps:

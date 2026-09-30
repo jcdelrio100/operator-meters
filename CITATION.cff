@@ -19,6 +19,7 @@ keywords:
   - gated coupling
 repository-code: "https://github.com/jcdelrio100/operator-meters"
 preferred-citation:
+  doi: 10.5281/zenodo.23071565
   type: article
   title: "When Does Fourier Diagonalize the Physics? Calibrated Meters for Fixed versus Learned Representations in Classification and in Operator Learning, and What the Learned Part Is Worth"
   year: 2026
