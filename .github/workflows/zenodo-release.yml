@@ -25,7 +25,7 @@ jobs:
       TAG: ${{ github.event.release.tag_name || inputs.tag }}
       RECORD_ID: "23071565"           # cualquier versión; se resuelve a la última
       BASENAME: operator-meters
-      PDF_PATH: paper/operator-meters.pdf
+      PDF_PATH: paper/operator_meters.pdf
     steps:
       - uses: actions/checkout@v4
         with:
