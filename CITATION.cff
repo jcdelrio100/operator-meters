@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software or paper, please cite it as below."
 title: "When Does Fourier Diagonalize the Physics? Calibrated Meters for Fixed versus Learned Representations in Classification and in Operator Learning, and What the Learned Part Is Worth"
 type: software
-version: 1.0.0
+version: 1.0.2
 date-released: "2026-09-29"
 license: MIT
 authors:

@@ -166,6 +166,15 @@ def run(args: argparse.Namespace, z: Zenodo) -> dict:
         except ZenodoError as e:  # no fatal: Zenodo acuña el DOI al publicar
             print(f"  (aviso) no se pudo reservar DOI: {e}", file=sys.stderr)
 
+    # Un borrador de nueva version puede llegar sin los campos obligatorios
+    # (resource_type, creators, title...): se rellenan desde la ultima version publicada.
+    pub_md = z._req("GET", f"/records/{latest}").get("metadata", {})
+    md = d.setdefault("metadata", {})
+    for key in ("resource_type", "creators", "title", "publisher", "description", "rights"):
+        if not md.get(key) and pub_md.get(key):
+            md[key] = pub_md[key]
+            print(f"  (relleno) metadata.{key} copiado de la version {latest}")
+
     payload = build_payload(d, version=args.version, date=args.date,
                             pdf_key=pdf_key, add_rights=args.add_license,
                             github_tree_url=args.github_tree_url)

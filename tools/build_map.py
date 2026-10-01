@@ -1,8 +1,11 @@
 """Build mapa_proyecto.html — the visual project map (convention: every section carries an
 'En cristiano' strip with the glasses analogy; numbers come from results/*.json)."""
-import os, json, base64, datetime
+import os, sys, json, base64, datetime
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RES = os.path.join(ROOT, "results"); FIG = os.path.join(ROOT, "figures"); OUT = os.path.join(ROOT, "mapa_proyecto.html")
+RES = os.path.join(ROOT, "results"); FIG = os.path.join(ROOT, "figures")
+# The map is an internal (Spanish) project document: it is written OUTSIDE the repository,
+# next to it (../mapa_proyecto.html), unless --out is given.
+OUT = sys.argv[sys.argv.index("--out") + 1] if "--out" in sys.argv else os.path.join(os.path.dirname(ROOT), "mapa_proyecto.html")
 J = lambda n: json.load(open(os.path.join(RES, n)))
 def img(name, alt=""):
     b = base64.b64encode(open(os.path.join(FIG, name), "rb").read()).decode()
